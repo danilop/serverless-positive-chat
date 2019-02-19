@@ -1,0 +1,201 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A chat without negative content.
+Resources:
+  PositiveChatWebSocket:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: PositiveChatWebSocket
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PositiveChatWebSocket
+      RouteKey: $connect
+      AuthorizationType: NONE
+      OperationName: ConnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref ConnectInteg
+  ConnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref PositiveChatWebSocket
+      Description: Connect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PositiveChatFunction.Arn}/invocations
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PositiveChatWebSocket
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      OperationName: DisconnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref DisconnectInteg
+  DisconnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref PositiveChatWebSocket
+      Description: Disconnect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PositiveChatFunction.Arn}/invocations
+  DefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PositiveChatWebSocket
+      RouteKey: "$default"
+      AuthorizationType: NONE
+      OperationName: DefaultRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref DefaultInteg
+  DefaultInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref PositiveChatWebSocket
+      Description: Default Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PositiveChatFunction.Arn}/invocations
+  Deployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+    - ConnectRoute
+    - DefaultRoute
+    - DisconnectRoute
+    Properties:
+      ApiId: !Ref PositiveChatWebSocket
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: Prod
+      Description: Prod Stage
+      DeploymentId: !Ref Deployment
+      ApiId: !Ref PositiveChatWebSocket
+  PositiveChatPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - PositiveChatWebSocket
+      - PositiveChatFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PositiveChatFunction
+      Principal: apigateway.amazonaws.com
+  ConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: 'PAY_PER_REQUEST'
+      AttributeDefinitions:
+        - AttributeName: 'connectionId'
+          AttributeType: 'S'
+        - AttributeName: 'room'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'connectionId'
+          KeyType: 'HASH'
+      GlobalSecondaryIndexes:
+        - IndexName: 'roomIndex'
+          KeySchema:
+            - AttributeName: 'room'
+              KeyType: 'HASH'
+          Projection:
+            ProjectionType: ALL
+  ConversationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: 'PAY_PER_REQUEST'
+      AttributeDefinitions:
+        - AttributeName: 'room'
+          AttributeType: 'S'
+        - AttributeName: 'timestamp'
+          AttributeType: 'N'
+      KeySchema:
+        - AttributeName: 'room'
+          KeyType: 'HASH'
+        - AttributeName: 'timestamp'
+          KeyType: 'RANGE'
+  TopicsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: 'PAY_PER_REQUEST'
+      AttributeDefinitions:
+        - AttributeName: 'room'
+          AttributeType: 'S'
+        - AttributeName: 'topic'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'room'
+          KeyType: 'HASH'
+        - AttributeName: 'topic'
+          KeyType: 'RANGE'
+  PositiveChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: positive-chat/
+      Handler: app.lambdaHandler
+      Runtime: nodejs8.10
+      Timeout: 30
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - 'execute-api:ManageConnections'
+            Resource:
+              - 'arn:aws:execute-api:*:*:*/@connections/*'
+          - Effect: Allow
+            Action:
+              - 'dynamoDb:PutItem'
+              - 'dynamoDb:GetItem'
+              - 'dynamoDb:DeleteItem'
+            Resource:
+              - !GetAtt ConnectionsTable.Arn
+          - Effect: Allow
+            Action:
+              - 'dynamoDb:Query'
+            Resource:
+              - !Sub "${ConnectionsTable.Arn}/index/roomIndex"
+          - Effect: Allow
+            Action:
+              - 'dynamoDb:PutItem'
+              - 'dynamoDb:Query'
+            Resource:
+              - !GetAtt ConversationsTable.Arn
+          - Effect: Allow
+            Action:
+              - 'dynamoDb:UpdateItem'
+              - 'dynamoDb:Query'
+            Resource:
+              - !GetAtt TopicsTable.Arn
+          - Effect: Allow
+            Action:
+              - 'comprehend:DetectDominantLanguage'
+              - 'comprehend:DetectSentiment'
+              - 'comprehend:DetectEntities'
+              - 'translate:TranslateText'
+            Resource: '*'
+      Environment:
+        Variables:
+          CONNECTIONS_TABLE: !Ref ConnectionsTable
+          CONVERSATIONS_TABLE: !Ref ConversationsTable
+
+Outputs:
+  PositiveChatFunction:
+    Description: "Positive Chat Lambda Function ARN"
+    Value: !GetAtt PositiveChatFunction.Arn
+  PositiveChatFunctionIamRole:
+    Description: "Implicit IAM Role created for Positive Chat function"
+    Value: !GetAtt PositiveChatFunctionRole.Arn
+  WebSocketURI:
+    Description: "The WSS Protocol URI to connect to"
+    Value: !Sub "wss://${PositiveChatWebSocket}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
