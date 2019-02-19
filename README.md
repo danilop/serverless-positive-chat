@@ -18,7 +18,7 @@ A sample deployment is available at:
 
 https://pchat.demo.danilop.net
 
-Pick a username, a chat room, and the language you want to use to recevie your messages.
+Pick a username, a chat room, and the language you want to use to receive your messages.
 
 ```bash
 .
