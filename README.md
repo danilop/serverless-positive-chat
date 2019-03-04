@@ -1,10 +1,10 @@
 # serverless-positive-chat
 
-This is an inclusive chat that avoids negative messages and translates the content in the language that you choose.
+An inclusive chat that avoids negative messages and translates the content in the language that you choose.
 
 Ths application is designed to be completely serverless, using:
 
-- [Amazon API Gateway](https://aws.amazon.com/api-gateway/) to manage WebSocket communication between the browser and a Lambda function
+- [Amazon API Gateway](https://aws.amazon.com/api-gateway/) to manage WebSocket communication between the browser and the Lambda function
 - [AWS Lambda](https://aws.amazon.com/lambda/) for the custom business logic
 - [Amazon Comprehend](https://aws.amazon.com/comprehend/) to detect the dominant language and sentiment of the messages
 - [Amazon Translate](https://aws.amazon.com/translate/) to translate the messages in the language chosen by each participant of a chat room
