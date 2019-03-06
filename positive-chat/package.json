@@ -5,11 +5,8 @@
   "main": "src/index.js",
   "repository": "",
   "author": "Danilo Poccia",
-  "license": "MIT",
-  "scripts": {
-    "test": "mocha tests/unit/"
-  },
-  "dependencies": {
+  "license": "Apache-2.0",
+   "dependencies": {
     "aws-sdk": "^2.382.0"
   }
 }

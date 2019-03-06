@@ -2,12 +2,14 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: A chat without negative content.
 Resources:
+
   PositiveChatWebSocket:
     Type: AWS::ApiGatewayV2::Api
     Properties:
       Name: PositiveChatWebSocket
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: "$request.body.action"
+
   ConnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -19,6 +21,7 @@ Resources:
         - '/'
         - - 'integrations'
           - !Ref ConnectInteg
+
   ConnectInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -28,6 +31,7 @@ Resources:
       IntegrationUri: 
         Fn::Sub:
             arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PositiveChatFunction.Arn}/invocations
+
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -39,6 +43,7 @@ Resources:
         - '/'
         - - 'integrations'
           - !Ref DisconnectInteg
+
   DisconnectInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -48,6 +53,7 @@ Resources:
       IntegrationUri: 
         Fn::Sub:
             arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PositiveChatFunction.Arn}/invocations
+
   DefaultRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -59,6 +65,7 @@ Resources:
         - '/'
         - - 'integrations'
           - !Ref DefaultInteg
+
   DefaultInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -68,6 +75,7 @@ Resources:
       IntegrationUri: 
         Fn::Sub:
             arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PositiveChatFunction.Arn}/invocations
+
   Deployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
@@ -76,6 +84,7 @@ Resources:
     - DisconnectRoute
     Properties:
       ApiId: !Ref PositiveChatWebSocket
+
   Stage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
@@ -83,6 +92,7 @@ Resources:
       Description: Prod Stage
       DeploymentId: !Ref Deployment
       ApiId: !Ref PositiveChatWebSocket
+
   PositiveChatPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -92,6 +102,7 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref PositiveChatFunction
       Principal: apigateway.amazonaws.com
+
   ConnectionsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -111,6 +122,7 @@ Resources:
               KeyType: 'HASH'
           Projection:
             ProjectionType: ALL
+
   ConversationsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -125,6 +137,7 @@ Resources:
           KeyType: 'HASH'
         - AttributeName: 'timestamp'
           KeyType: 'RANGE'
+
   TopicsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -139,6 +152,7 @@ Resources:
           KeyType: 'HASH'
         - AttributeName: 'topic'
           KeyType: 'RANGE'
+
   PositiveChatFunction:
     Type: AWS::Serverless::Function
     Properties:
