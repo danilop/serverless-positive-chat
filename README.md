@@ -10,6 +10,9 @@ Ths application is designed to be completely serverless, using:
 - [Amazon Translate](https://aws.amazon.com/translate/) to translate the messages in the language chosen by each participant of a chat room
 - [Amazon DynamoDB](https://aws.amazon.com/dynamodb/) to store messages and connection information
 
+![serverless-positive-chat architecture]
+(https://danilop.s3.amazonaws.com/Images/positive-chat-architecture.png)
+
 You can find a brief description of the architecture here:
 
 https://speakerdeck.com/danilop/serverless-real-time-apps-lets-build-a-positive-chat
