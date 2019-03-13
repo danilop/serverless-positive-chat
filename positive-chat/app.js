@@ -1,16 +1,34 @@
 const AWS = require('aws-sdk');
+
+// Set HTTPS Keep-Alive for the AWS SDK
+const https = require('https');
+const sslAgent = new https.Agent({
+    keepAlive: true,
+    maxSockets: 64,
+    rejectUnauthorized: true
+});
+sslAgent.setMaxListeners(0);
+AWS.config.update({
+    httpOptions: {
+        agent: sslAgent
+    }
+});
+
 const docClient = new AWS.DynamoDB.DocumentClient();
 const comprehend = new AWS.Comprehend();
 const translate = new AWS.Translate();
 
-const SUPPORTED_LANGUAGES = [ 'de', 'pt', 'en', 'it', 'fr', 'es' ];
+const DETECT_SENTIMENT_LANGUAGES = ['de', 'pt', 'en', 'it', 'fr', 'es'];
+const REJECT_MESSAGE = 'Please find a better way to express this.';
+const DEFAULT_LANGUAGE = 'en';
 
 const CONNECTIONS_TABLE = process.env.CONNECTIONS_TABLE;
 const CONVERSATIONS_TABLE = process.env.CONVERSATIONS_TABLE;
+const TOPICS_TABLE = process.env.TOPICS_TABLE;
 
 const translations = {};
 
-exports.lambdaHandler = async (event, context) => {
+exports.lambdaHandler = async(event, context) => {
     console.log(event);
 
     const eventType = event.requestContext.eventType;
@@ -22,7 +40,7 @@ exports.lambdaHandler = async (event, context) => {
         endpoint: domainName + '/' + stage
     });
 
-    switch(eventType) {
+    switch (eventType) {
         case 'CONNECT':
             break;
         case 'DISCONNECT':
@@ -50,12 +68,13 @@ async function processMessage(agma, connectionId, body) {
     const action = message.action;
     delete message.action;
 
-    switch(action) {
+    switch (action) {
         case 'message':
             await analyzeMessage(message);
             if (message.reject) {
                 await rejectMessage(agma, connectionId, message);
-            } else {
+            }
+            else {
                 await sendMessageToRoom(agma, connectionId, message);
             }
             break;
@@ -71,15 +90,14 @@ async function processMessage(agma, connectionId, body) {
 
 async function initConnection(connectionId, room, lang) {
     console.log('initConnection', connectionId, room, lang);
-    const params = {
+    await docClient.put({
         TableName: CONNECTIONS_TABLE,
         Item: {
             connectionId: connectionId,
             lang: lang,
             room: room
         }
-    };
-    await docClient.put(params).promise();
+    }).promise();
 }
 
 async function sendMessageToRoom(agma, sourceConnectionId, message) {
@@ -100,8 +118,14 @@ async function sendMessageToRoom(agma, sourceConnectionId, message) {
 
     message.room = connectionData.Item.room;
 
-    await storeMessage(message);
+    if (Object.keys(message.topics).length > 0) {
+        await updateTopics(message.room, message.topics);
+    }
 
+    message.roomTopics = await getTopicsLict(message.room);
+
+    await storeMessage(message);
+    
     // get all connections from room
     const connectionsData = await docClient.query({
         TableName: CONNECTIONS_TABLE,
@@ -113,9 +137,9 @@ async function sendMessageToRoom(agma, sourceConnectionId, message) {
     }).promise();
 
     await Promise.all(
-        connectionsData.Items.map(async ({ connectionId, lang }) => {
+        connectionsData.Items.map(async({ connectionId, lang }) => {
             await translateMessage(message, lang);
-            await sendMessagesToConnection(agma, connectionId, [ message ]);
+            await sendMessagesToConnection(agma, connectionId, [message]);
         })
     );
 }
@@ -125,8 +149,9 @@ async function translateMessage(message, destLang) {
     if (destLang !== message.lang) {
         message.destLang = destLang;
         if (translations[message.content] && translations[message.content][destLang]) {
-           message.translated = translations[message.content][destLang];
-        } else {
+            message.translated = translations[message.content][destLang];
+        }
+        else {
             const translateData = await translate.translateText({
                 SourceLanguageCode: message.lang,
                 TargetLanguageCode: destLang,
@@ -148,10 +173,12 @@ async function sendMessagesToConnection(agma, connectionId, messages) {
             ConnectionId: connectionId,
             Data: JSON.stringify(messages)
         }).promise();
-    } catch (err) {
+    }
+    catch (err) {
         if (err.statusCode === 410) {
             await deleteConnection(connectionId);
-        } else {
+        }
+        else {
             throw err;
         }
     }
@@ -161,73 +188,118 @@ async function rejectMessage(agma, connectionId, message) {
     console.log('rejectyMessage', connectionId, message);
     message.user = 'Positive Chat';
     const destLang = message.lang;
-    message.lang = 'en';
+    message.lang = DEFAULT_LANGUAGE;
     message.content = message.reject;
     await translateMessage(message, destLang);
-    await sendMessagesToConnection(agma, connectionId, [ message ]);
+    await sendMessagesToConnection(agma, connectionId, [message]);
 }
 
 async function analyzeMessage(message) {
-    console.log('checkMessage', message);
+    console.log('analyzeMessage', message);
     const languageData = await comprehend.detectDominantLanguage({
         Text: message.content
     }).promise();
     console.log(languageData);
     message.lang = languageData.Languages.reduce(
         (acc, val) => {
-            if (val.Score > acc.Score) { return val; } else { return acc; }
-        }, { Score: 0}).LanguageCode;
-    if (SUPPORTED_LANGUAGES.indexOf(message.lang) === -1) {
-        response.reject = 'Sorry, language "' + message.lang + '" is not supported.'
-    } else {
-        const sentimentData = await comprehend.detectSentiment({
+            if (val.Score > acc.Score) { return val; }
+            else { return acc; }
+        }, { Score: 0 }).LanguageCode;
+    if (DETECT_SENTIMENT_LANGUAGES.indexOf(message.lang) === -1) {
+        await translateMessage(message, DEFAULT_LANGUAGE);
+    }
+    let detectParams;
+    if (message.translated) {
+        detectParams = {
+            LanguageCode: message.destLang,
+            Text: message.translated
+        };
+    }
+    else {
+        detectParams = {
             LanguageCode: message.lang,
             Text: message.content
-        }).promise();
-        console.log(sentimentData);
-        message.sentiment = sentimentData;
-        if (message.sentiment.Sentiment === 'NEGATIVE') {
-            message.reject = 'Please find a better way to express this.'
-        }
-        const entitiesData = await comprehend.detectEntities({
-            LanguageCode: message.lang,
-            Text: message.content
-        }).promise();
-        console.log(entitiesData);
-        message.topics = entitiesData.Entities.reduce(
-            (acc, val) => {
-                console.log(acc, val);
-                const topic = val.Text;
-                console.log(topic);
-                if (acc[topic]) {
-                    acc[topic]++;
-                } else {
-                    acc[topic] = 1;
-                }
-                return acc;
-            }, {});
+        };
+    }
+    const sentimentData = await comprehend.detectSentiment(detectParams).promise();
+    console.log(sentimentData);
+    message.sentiment = sentimentData;
+    if (message.sentiment.Sentiment === 'NEGATIVE') {
+        message.reject = REJECT_MESSAGE;
+    }
+    const entitiesData = await comprehend.detectEntities(detectParams).promise();
+    console.log(entitiesData);
+    message.topics = entitiesData.Entities.reduce(
+        (acc, val) => {
+            console.log(acc, val);
+            const topic = val.Text;
+            console.log(topic);
+            if (acc[topic]) {
+                acc[topic]++;
+            }
+            else {
+                acc[topic] = 1;
+            }
+            return acc;
+        }, {});
+    if (message.translated) {
+        delete message.translated;
+        delete message.destLang;
     }
     console.log(message);
 }
 
 async function deleteConnection(connectionId) {
     console.log('deleteConnection', connectionId);
-    const params = {
+    await docClient.delete({
         TableName: CONNECTIONS_TABLE,
         Key: {
             connectionId: connectionId
         }
-    };
-    await docClient.delete(params).promise();
+    }).promise();
 }
 
 async function storeMessage(message) {
     console.log('storeMessage', message);
-    const params = {    
+    await docClient.put({
         TableName: CONVERSATIONS_TABLE,
         Item: message
-    };
-    await docClient.put(params).promise();
+    }).promise();
+}
+
+async function updateTopics(room, topics) {
+    console.log('updateTopics', room, topics);
+    for (const topic in topics) {
+        await docClient.update({
+            TableName: TOPICS_TABLE,
+            Key: {
+                room: room,
+                topic: topic
+            },
+            UpdateExpression: 'add num :n',
+            ExpressionAttributeValues: {
+                ':n': topics[topic]
+            }
+        }).promise();
+    }
+}
+
+async function getTopicsLict(room) {
+ const topicsData = await docClient.query({
+        TableName: TOPICS_TABLE,
+        IndexName: 'numIndex',
+        KeyConditionExpression: 'room = :room',
+        ExpressionAttributeValues: {
+            ':room': room
+        },
+        ScanIndexForward: false,
+        Limit: 3
+    }).promise();
+    const topicsList = [];
+    for (const item of topicsData.Items) {
+        topicsList.push(item.topic);
+    }
+    return topicsList;
 }
 
 async function sendRoomMessages(agma, connectionId, room, destLang) {
@@ -246,4 +318,3 @@ async function sendRoomMessages(agma, connectionId, room, destLang) {
     }
     await sendMessagesToConnection(agma, connectionId, messages);
 }
-
