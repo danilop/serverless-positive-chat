@@ -45,20 +45,20 @@ Pick a username, a chat room, and the language you want to use to receive your m
 Create two S3 buckets, one for the deployment packages and one for hosting the website. Bucket names must be unique, so those in the folowing sample are probably taken:
 
 ```bash
-$ aws s3 mb positive-chat-packages # choose a unique bucket name here
-$ aws s3 mb positive-chat-web      # ...
+$ aws s3 mb s3://positive-chat-packages # choose a unique bucket name here
+$ aws s3 mb s3://positive-chat-web      # ...
 ```
 
 Run the `deploy.sh` script passing the followng options:
 
 ```
-./deploy.sh {PACKAGES_BUCKET} {WWW_BUCKET} {STACK_NAME}"
+./deploy.sh {PACKAGES_BUCKET} {WWW_BUCKET} {STACK_NAME}
 ```
 
 For example, using the buckets you created before, you would use something like:
 
 ```bash
-./deploy.sh positive-chat-packages positive-chat-web positive-chat-prod"
+./deploy.sh positive-chat-packages positive-chat-web positive-chat-prod
 ```
 
 The `deploy.sh` script gets the WebSocket (WSS) URI from the output of the [CloudFormation](https://aws.amazon.com/cloudformation/) stack to pass it to the web app, so that you don't need to configure it manually.
