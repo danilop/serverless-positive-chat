@@ -147,11 +147,22 @@ Resources:
           AttributeType: 'S'
         - AttributeName: 'topic'
           AttributeType: 'S'
+        - AttributeName: 'num'
+          AttributeType: 'N'
       KeySchema:
         - AttributeName: 'room'
           KeyType: 'HASH'
         - AttributeName: 'topic'
           KeyType: 'RANGE'
+      GlobalSecondaryIndexes:
+        - IndexName: 'numIndex'
+          KeySchema:
+            - AttributeName: 'room'
+              KeyType: 'HASH'
+            - AttributeName: 'num'
+              KeyType: 'RANGE'
+          Projection:
+            ProjectionType: ALL
 
   PositiveChatFunction:
     Type: AWS::Serverless::Function
@@ -188,9 +199,13 @@ Resources:
           - Effect: Allow
             Action:
               - 'dynamoDb:UpdateItem'
-              - 'dynamoDb:Query'
             Resource:
               - !GetAtt TopicsTable.Arn
+          - Effect: Allow
+            Action:
+              - 'dynamoDb:Query'
+            Resource:
+              - !Sub "${TopicsTable.Arn}/index/numIndex"
           - Effect: Allow
             Action:
               - 'comprehend:DetectDominantLanguage'
@@ -202,6 +217,7 @@ Resources:
         Variables:
           CONNECTIONS_TABLE: !Ref ConnectionsTable
           CONVERSATIONS_TABLE: !Ref ConversationsTable
+          TOPICS_TABLE: !Ref TopicsTable
 
 Outputs:
   PositiveChatFunction:
