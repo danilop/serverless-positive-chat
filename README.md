@@ -1,6 +1,6 @@
 # serverless-positive-chat
 
-An inclusive chat that avoids negative messages and translates the content in the language that you choose.
+An inclusive chat that avoids negative messages and translates the content in the language that you choose, tracking the main topics of a chat room.
 
 ![serverless-positive-chat demo](https://danilop.s3.amazonaws.com/Images/positive-chat-demo.png)
 
