@@ -42,7 +42,7 @@ Pick a username, a chat room, and the language you want to use to receive your m
 
 ## Setup process
 
-Create two S3 buckets, one for the deployment packages and one for hosting the website. Bucket names must be unique, so those in the folowing sample are probably taken:
+Create two S3 buckets, one for the deployment packages and one for hosting the website. Bucket names must be unique, so those in the following example are probably taken:
 
 ```bash
 $ aws s3 mb s3://positive-chat-packages # choose a unique bucket name here
