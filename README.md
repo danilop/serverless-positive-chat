@@ -2,6 +2,8 @@
 
 An inclusive chat that avoids negative messages and translates the content in the language that you choose.
 
+![serverless-positive-chat demo](https://danilop.s3.amazonaws.com/Images/positive-chat-demo.png)
+
 Ths application is designed to be completely serverless, using:
 
 - [Amazon API Gateway](https://aws.amazon.com/api-gateway/) to manage WebSocket communication between the browser and the Lambda function
