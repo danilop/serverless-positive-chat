@@ -63,10 +63,10 @@ For example, using the buckets you created before, you would use something like:
 
 The `deploy.sh` script gets the WebSocket (WSS) URI from the output of the [CloudFormation](https://aws.amazon.com/cloudformation/) stack to pass it to the web app, so that you don't need to configure it manually.
 
-Using a web browser, go to the S3 bucket you are using for the website, for example (use the bucket you created to host the website):
+Using a web browser, go to the S3 bucket you are using for the website, for example (replace the bucket with the one you created to host the website):
 
 http://positive-chat-web.s3.amazonaws.com/index.html
 
-Then pick a username, a chat room, and the language you want to use to recevie your messages.
+Then pick a username, a chat room, and the language you want to receive your messages translated to.
 
 Add a CloudFront distribution to have HTTPS access with the domain of your choice. WebSockets are always encrypted (WSS) by the API Gateway.
