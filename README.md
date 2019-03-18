@@ -10,7 +10,7 @@ Ths application is designed to be completely [serverless](https://aws.amazon.com
 - [AWS Lambda](https://aws.amazon.com/lambda/) for the custom business logic
 - [Amazon Comprehend](https://aws.amazon.com/comprehend/) to detect the dominant language, the sentiment of the messages, and its main entities (topics)
 - [Amazon Translate](https://aws.amazon.com/translate/) to translate the messages to the language chosen by each participant of a chat room, or to a language supported by Comprehend for sentiment and entities detection.
-- [Amazon DynamoDB](https://aws.amazon.com/dynamodb/) to store messages and connection information
+- [Amazon DynamoDB](https://aws.amazon.com/dynamodb/) to store messages, connection information, and the topics discussed in each chat room
 
 ![serverless-positive-chat architecture](https://danilop.s3.amazonaws.com/Images/positive-chat-architecture.png)
 
