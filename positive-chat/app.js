@@ -60,6 +60,10 @@ exports.lambdaHandler = async(event, context) => {
     return response;
 };
 
+function removeTags(text) {
+    return text.replace(/<[^>]*>/g, '');
+}
+
 async function processMessage(agma, connectionId, body) {
     console.log('processMessage', connectionId, body);
 
@@ -196,6 +200,8 @@ async function rejectMessage(agma, connectionId, message) {
 
 async function analyzeMessage(message) {
     console.log('analyzeMessage', message);
+    message.user = removeTags(message.user);
+    message.content = removeTags(message.content);
     const languageData = await comprehend.detectDominantLanguage({
         Text: message.content
     }).promise();

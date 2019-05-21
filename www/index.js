@@ -9,9 +9,14 @@ const SUPPORTED_LANGUAGES = {
     fr: 'French',
     de: 'German',
     he: 'Hebrew',
+    hi: 'Hindi',
+    id: 'Indonesian',
     it: 'Italian',
     ja: 'Japanese',
     ko: 'Korean',
+    ms: 'Malay',
+    no: 'Norwegian',
+    fa: 'Persian',
     pl: 'Polish',
     pt: 'Portuguese',
     ru: 'Russian',
@@ -130,11 +135,11 @@ function start_chat(wss_uri) {
         for (let m of messages) {
             console.log(m);
             let date = new Date(m.timestamp).toLocaleString().toLowerCase();
-            let html = '<p>' + '<strong>' + m.user + '</strong> <em>' + date + '</em>';
+            let html = '<p>' + '<strong>' + removeTags(m.user) + '</strong> <em>' + date + '</em>';
             if (Object.keys(m.topics).length > 0) {
                 html += ' [' + Object.keys(m.topics).join(', ') + ']';
             }
-            html += '<br>[' + m.lang + '] ' + m.content;
+            html += '<br>[' + m.lang + '] ' + removeTags(m.content);
             if ('translated' in m) {
                 html += '<br>' + '[' + m.destLang + '] ' + m.translated;
             }
@@ -180,6 +185,10 @@ function sendMessage(message) {
     const rawMessage = JSON.stringify(message);
     console.log('sendMessage: ' + rawMessage);
     connection.send(rawMessage);
+}
+
+function removeTags(text) {
+    return text.replace(/<[^>]*>/g, '');
 }
 
 function init() {
