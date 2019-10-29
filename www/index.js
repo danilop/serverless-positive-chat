@@ -1,7 +1,7 @@
 const SUPPORTED_LANGUAGES = {
     ar: 'Arabic',
     zh: 'Chinese (Simplified)',
-    zh-TW: 'Chinese (Traditional)',
+    'zh-TW': 'Chinese (Traditional)',
     cs: 'Czech',
     da: 'Danish',
     nl: 'Dutch',

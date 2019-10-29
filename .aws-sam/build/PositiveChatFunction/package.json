@@ -1,0 +1,12 @@
+{
+  "name": "positive-chat",
+  "version": "1.0.0",
+  "description": "A chat without negative content",
+  "main": "src/index.js",
+  "repository": "",
+  "author": "Danilo Poccia",
+  "license": "Apache-2.0",
+   "dependencies": {
+    "aws-sdk": "^2.382.0"
+  }
+}
