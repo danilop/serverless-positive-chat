@@ -1,6 +1,7 @@
 const SUPPORTED_LANGUAGES = {
     ar: 'Arabic',
     zh: 'Chinese (Simplified)',
+    zh-TW: 'Chinese (Traditional)',
     cs: 'Czech',
     da: 'Danish',
     nl: 'Dutch',
@@ -8,8 +9,10 @@ const SUPPORTED_LANGUAGES = {
     fi: 'Finnish',
     fr: 'French',
     de: 'German',
+    el: 'Greek',
     he: 'Hebrew',
     hi: 'Hindi',
+    hu: 'Hungarian',
     id: 'Indonesian',
     it: 'Italian',
     ja: 'Japanese',
@@ -19,10 +22,15 @@ const SUPPORTED_LANGUAGES = {
     fa: 'Persian',
     pl: 'Polish',
     pt: 'Portuguese',
+    ro: 'Romanian',
     ru: 'Russian',
     es: 'Spanish',
     sv: 'Swedish',
-    tr: 'Turkish'
+    th: 'Thai',
+    tr: 'Turkish',
+    uk: 'Ukrainian',
+    ur: 'Urdu',
+    vi: 'Vietnamese'
 };
 
 const DEFAULT_LANGUAGE = 'en';
