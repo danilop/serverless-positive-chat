@@ -20,7 +20,7 @@ const translate = new AWS.Translate();
 
 const DETECT_SENTIMENT_LANGUAGES = [
     'en', 'es', 'fr', 'de', 'it', 'pt',
-    'ar', 'hi' 'ja', 'ko', 'zh', 'zh-TW'
+    'ar', 'hi', 'ja', 'ko', 'zh', 'zh-TW'
 ];
 const REJECT_MESSAGE = 'Please find a better way to express this.';
 const DEFAULT_LANGUAGE = 'en';
